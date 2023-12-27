@@ -1,7 +1,4 @@
 use scraper::{Html, Selector};
-use thirtyfour::prelude::*;
-
-use super::session::Session;
 
 #[derive(Debug)]
 pub enum DrawType {
@@ -55,14 +52,8 @@ fn parse_draw_stage(stage_str: &str) -> Option<DrawStage> {
     }
 }
 
-pub async fn load_draws(session: &Session, event_id: &str) -> WebDriverResult<Vec<DrawInfo>> {
-    let url = format!(
-        "https://www.tournamentsoftware.com/sport/draws.aspx?id={}",
-        event_id.to_lowercase()
-    );
-
-    let html = session.load_content(url).await?;
-    let fragment = Html::parse_fragment(&html);
+pub fn parse_event_draws(html: &str) -> anyhow::Result<Vec<DrawInfo>> {
+    let fragment = Html::parse_fragment(html);
 
     let draw_selector = Selector::parse("table tbody tr").unwrap();
 

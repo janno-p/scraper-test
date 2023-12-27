@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT url, content, updated_at FROM pages WHERE url = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "url",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "content",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at",
+        "ordinal": 2,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "dbb27dcf4b95a66071c667da0c90e76d8e01c11269aae0d8cf9d0e3e3a364c16"
+}

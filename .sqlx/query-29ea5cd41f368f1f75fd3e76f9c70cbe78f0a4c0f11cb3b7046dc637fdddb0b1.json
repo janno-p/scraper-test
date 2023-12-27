@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO pages (url, content, updated_at) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "29ea5cd41f368f1f75fd3e76f9c70cbe78f0a4c0f11cb3b7046dc637fdddb0b1"
+}

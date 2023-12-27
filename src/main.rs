@@ -1,48 +1,58 @@
-mod internal;
+use std::path::Path;
 
-use colored::Colorize;
-use internal::{draws::load_draws, events::load_events, session::Session};
-use thirtyfour::prelude::*;
+use actix_files::Files;
+use actix_htmx::HtmxMiddleware;
+use actix_web::{web::Data, App, HttpServer};
+use sqlx::{migrate::MigrateDatabase, Pool, Sqlite, SqlitePool};
 
-#[tokio::main]
-async fn main() -> WebDriverResult<()> {
-    let event_id = "8E03F37D-88D4-4CCD-9B42-95BD2ABF6A3B";
-
-    let session = Session::init().await?;
-
-    let events = load_events(&session, event_id).await?;
-    let draws = load_draws(&session, event_id).await?;
-
-    for evt in events {
-        if let Some(url) = evt.url {
-            // tokio::time::sleep(Duration::from_secs(2)).await;
-            let html = session.load_content(url).await?;
-            println!("{} {} {}", "=====".cyan(), evt.name.green(), "=====".cyan());
-            println!("{}", html);
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    let connection_pool = match init_db("database.sqlite").await {
+        Ok(pool) => pool,
+        Err(e) => {
+            println!("Failed to connect to database: {}", e);
+            return Ok(());
         }
+    };
+
+    HttpServer::new(move || {
+        App::new()
+            .app_data(Data::new(connection_pool.clone()))
+            .service(Files::new(
+                "/static",
+                Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/static")),
+            ))
+            .wrap(HtmxMiddleware)
+        // .service(web::scope("/").route("", web::get().to(home)))
+        // .service(
+        //     web::scope("/todo")
+        //         .service(web::resource("").route(web::post().to(create_todo)))
+        //         .service(
+        //             web::resource("{id}")
+        //                 .route(web::put().to(update_todo))
+        //                 .route(web::delete().to(delete_todo)),
+        //         ),
+        // )
+    })
+    .bind("0.0.0.0:8080")?
+    .run()
+    .await
+}
+
+async fn init_db(file_name: &str) -> anyhow::Result<Pool<Sqlite>> {
+    let db_full_path = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/database"))
+        .join(file_name)
+        .to_string_lossy()
+        .to_string();
+
+    let connection_string = format!("{}{}", "sqlite://", db_full_path);
+    if !Path::new(&db_full_path).exists() {
+        Sqlite::create_database(connection_string.as_str()).await?;
     }
 
-    for draw in draws {
-        println!("{}", format!("===== {} =====", draw.name).green());
-        println!("{}: {}", "Url".yellow(), draw.url.unwrap().cyan().bold());
-        println!(
-            "{}: {}",
-            "Type".yellow(),
-            format!("{:?}", draw.r#type).cyan().bold()
-        );
-        println!(
-            "{}: {}",
-            "Stage".yellow(),
-            format!("{:?}", draw.stage).cyan().bold()
-        );
-        println!(
-            "{}: {}",
-            "Consolation".yellow(),
-            format!("{:?}", draw.consolation).cyan().bold()
-        );
-    }
+    let db_pool = SqlitePool::connect(connection_string.as_str()).await?;
 
-    session.close().await?;
+    sqlx::migrate!().run(&db_pool).await?;
 
-    Ok(())
+    Ok(db_pool)
 }
